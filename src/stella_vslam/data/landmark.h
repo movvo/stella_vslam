@@ -10,6 +10,7 @@
 
 #include <opencv2/core/mat.hpp>
 #include <nlohmann/json_fwd.hpp>
+#include <sqlite3.h>
 
 namespace stella_vslam {
 namespace data {
@@ -28,7 +29,7 @@ public:
     using observations_t = std::map<std::weak_ptr<keyframe>, unsigned int, id_less<std::weak_ptr<keyframe>>>;
 
     //! constructor
-    landmark(const Vec3_t& pos_w, const std::shared_ptr<keyframe>& ref_keyfrm);
+    landmark(unsigned int id, const Vec3_t& pos_w, const std::shared_ptr<keyframe>& ref_keyfrm);
 
     //! constructor for map loading with computing parameters which can be recomputed
     landmark(const unsigned int id, const unsigned int first_keyfrm_id,
@@ -36,6 +37,25 @@ public:
              const unsigned int num_visible, const unsigned int num_found);
 
     virtual ~landmark();
+
+    // Factory method for create landmark
+    static std::shared_ptr<landmark> from_stmt(sqlite3_stmt* stmt,
+                                               std::unordered_map<unsigned int, std::shared_ptr<stella_vslam::data::keyframe>>& keyframes,
+                                               unsigned int next_landmark_id,
+                                               unsigned int next_keyframe_id);
+
+    /**
+     * Save this landmark information to db
+     */
+    static std::vector<std::pair<std::string, std::string>> columns() {
+        return std::vector<std::pair<std::string, std::string>>{
+            {"first_keyfrm", "INTEGER"},
+            {"pos_w", "BLOB"},
+            {"ref_keyfrm", "INTEGER"},
+            {"n_vis", "INTEGER"},
+            {"n_fnd", "INTEGER"}};
+    };
+    bool bind_to_stmt(sqlite3* db, sqlite3_stmt* stmt) const;
 
     //! set world coordinates of this landmark
     void set_pos_in_world(const Vec3_t& pos_w);
@@ -65,9 +85,9 @@ public:
     bool is_observed_in_keyframe(const std::shared_ptr<keyframe>& keyfrm) const;
 
     //! check the distance between landmark and camera is in ORB scale variance
-    inline bool is_inside_in_orb_scale(const float cam_to_lm_dist) const {
-        const float max_dist = this->get_max_valid_distance();
-        const float min_dist = this->get_min_valid_distance();
+    inline bool is_inside_in_orb_scale(const float cam_to_lm_dist, const float margin_far, const float margin_near) const {
+        const float max_dist = margin_far * get_max_valid_distance();
+        const float min_dist = margin_near * get_min_valid_distance();
         return (min_dist <= cam_to_lm_dist && cam_to_lm_dist <= max_dist);
     }
 
@@ -115,7 +135,6 @@ public:
 
 public:
     unsigned int id_;
-    static std::atomic<unsigned int> next_id_;
     unsigned int first_keyfrm_id_ = 0;
     unsigned int num_observations_ = 0;
 

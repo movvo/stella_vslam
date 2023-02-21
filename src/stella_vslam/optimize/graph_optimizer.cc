@@ -19,8 +19,8 @@
 namespace stella_vslam {
 namespace optimize {
 
-graph_optimizer::graph_optimizer(data::map_database* map_db, const bool fix_scale)
-    : map_db_(map_db), fix_scale_(fix_scale) {}
+graph_optimizer::graph_optimizer(const bool fix_scale)
+    : fix_scale_(fix_scale) {}
 
 void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfrm, const std::shared_ptr<data::keyframe>& curr_keyfrm,
                                const module::keyframe_Sim3_pairs_t& non_corrected_Sim3s,
@@ -41,15 +41,32 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
 
     // 2. Add vertices
 
-    const auto all_keyfrms = map_db_->get_all_keyframes();
-    const auto all_lms = map_db_->get_all_landmarks();
+    const auto all_keyfrms = curr_keyfrm->graph_node_->get_keyframes_from_root();
+    std::unordered_set<unsigned int> already_found_landmark_ids;
+    std::vector<std::shared_ptr<data::landmark>> all_lms;
+    for (const auto& keyfrm : all_keyfrms) {
+        for (const auto& lm : keyfrm->get_landmarks()) {
+            if (!lm) {
+                continue;
+            }
+            if (lm->will_be_erased()) {
+                continue;
+            }
+            if (already_found_landmark_ids.count(lm->id_)) {
+                continue;
+            }
+
+            already_found_landmark_ids.insert(lm->id_);
+            all_lms.push_back(lm);
+        }
+    }
 
     // Transform the pre-modified poses of all the keyframes to Sim3, and save them
     eigen_alloc_unord_map<unsigned int, g2o::Sim3> Sim3s_cw;
     // Save the added vertices
     std::unordered_map<unsigned int, internal::sim3::shot_vertex*> vertices;
 
-    constexpr int min_weight = 100;
+    constexpr int min_num_shared_lms = 100;
 
     for (auto keyfrm : all_keyfrms) {
         if (keyfrm->will_be_erased()) {
@@ -76,8 +93,8 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
             keyfrm_vtx->setEstimate(Sim3_cw);
         }
 
-        // Fix the loop keyframe or origin keyframe
-        if (*keyfrm == *loop_keyfrm || keyfrm->id_ == 0) {
+        // Fix the loop keyframe or root keyframe
+        if (*keyfrm == *loop_keyfrm || keyfrm->graph_node_->is_spanning_root()) {
             keyfrm_vtx->setFixed(true);
         }
 
@@ -108,7 +125,7 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
             inserted_edge_pairs.insert(std::make_pair(std::min(id1, id2), std::max(id1, id2)));
         };
 
-    // Add loop edges only over the weight threshold
+    // Add loop edges only over the number of shared landmarks threshold
     for (const auto& loop_connection : loop_connections) {
         auto keyfrm = loop_connection.first;
         const auto& connected_keyfrms = loop_connection.second;
@@ -121,9 +138,9 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
             const auto id2 = connected_keyfrm->id_;
 
             // Except the current vs loop edges,
-            // Add the loop edges only over the weight threshold
+            // Add the loop edges only over the minimum number of shared landmarks threshold
             if (!(id1 == curr_keyfrm->id_ && id2 == loop_keyfrm->id_)
-                && keyfrm->graph_node_->get_weight(connected_keyfrm) < min_weight) {
+                && keyfrm->graph_node_->get_num_shared_landmarks(connected_keyfrm) < min_num_shared_lms) {
                 continue;
             }
 
@@ -167,7 +184,7 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
             insert_edge(id1, id2, Sim3_21);
         }
 
-        // Add all the loop edges with any weight
+        // Add all the loop edges with any number of shared landmarks
         const auto loop_edges = keyfrm->graph_node_->get_loop_edges();
         for (auto connected_keyfrm : loop_edges) {
             const auto id2 = connected_keyfrm->id_;
@@ -189,8 +206,8 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
             insert_edge(id1, id2, Sim3_21);
         }
 
-        // Add the covisibility information over the weight threshold
-        const auto connected_keyfrms = keyfrm->graph_node_->get_covisibilities_over_weight(min_weight);
+        // Add the covisibility information over the minimum number of shared landmarks threshold
+        const auto connected_keyfrms = keyfrm->graph_node_->get_covisibilities_over_min_num_shared_lms(min_num_shared_lms);
         for (auto connected_keyfrm : connected_keyfrms) {
             // null check
             if (!connected_keyfrm || !parent_node) {
@@ -237,6 +254,8 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
 
     optimizer.initializeOptimization();
     optimizer.optimize(50);
+
+    delete terminateAction;
 
     // 5. Update the camera poses and point-cloud
 
