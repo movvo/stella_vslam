@@ -1,10 +1,26 @@
 let express = require("express");
 let http_server = require("http").Server(express());
-let io_server = require("socket.io")(http_server);
+let io_server = require("socket.io")(http_server, {
+  maxHttpBufferSize: 1e12,
+  pingTimeout: 120000
+});
 
 let app = express();
 let http_publisher = require("http").Server(app);
-let io_publisher = require("socket.io")(http_publisher);
+let io_publisher = require("socket.io")(http_publisher, {
+  maxHttpBufferSize: 1e12,
+  pingTimeout: 120000
+});
+
+// Port variables
+let PORT_SERVER = 3000
+let PORT_PUBLISHER = 3001
+if (process.argv.length > 2) {
+PORT_SERVER = process.argv[2]
+}
+if (process.argv.length > 3) {
+PORT_PUBLISHER = process.argv[3]
+}
 
 // setting express
 app.set("views", __dirname + "/views");
@@ -38,10 +54,10 @@ io_publisher.on("connection", function (socket) {
   });
 });
 
-http_server.listen(3000, function () {
-  console.log("WebSocket: listening on *:3000");
+http_server.listen(PORT_SERVER, function () {
+  console.log("WebSocket: listening on *:",PORT_SERVER);
 });
 
-http_publisher.listen(3001, function () {
-  console.log("HTTP server: listening on *:3001")
+http_publisher.listen(PORT_PUBLISHER, function () {
+  console.log("HTTP server: listening on *:",PORT_PUBLISHER)
 });

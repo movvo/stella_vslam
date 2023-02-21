@@ -91,6 +91,15 @@ public:
     //! Get the frame publisher
     const std::shared_ptr<publish::frame_publisher> get_frame_publisher() const;
 
+    //! Get the map database
+    const data::map_database* get_map_database() const;
+
+    //! Get tracking state
+    uint8_t get_tracking_state();
+
+    //! Set tracking state
+    void set_tracking_state(tracker_state_t tracking_state);
+
     //-----------------------------------------
     // module management
 
@@ -163,6 +172,9 @@ public:
 
     //-----------------------------------------
     // management for reset
+
+    //! Reset the tracking module
+    void reset_tracker();
 
     //! Request to reset the system
     void request_reset();

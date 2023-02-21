@@ -225,6 +225,10 @@ const std::shared_ptr<publish::frame_publisher> system::get_frame_publisher() co
     return frame_publisher_;
 }
 
+const data::map_database* system::get_map_database() const {
+    return map_db_;
+}
+
 void system::enable_mapping_module() {
     std::lock_guard<std::mutex> lock(mtx_mapping_);
     if (!system_is_running_) {
@@ -518,6 +522,14 @@ void system::resume_tracker() {
     tracker_->resume();
 }
 
+uint8_t system::get_tracking_state() {
+    return (uint8_t)    tracker_->tracking_state_;
+}
+
+void system::set_tracking_state(tracker_state_t tracking_state) {
+    tracker_->tracking_state_ = tracking_state;
+}
+
 void system::request_reset() {
     std::lock_guard<std::mutex> lock(mtx_reset_);
     reset_is_requested_ = true;
@@ -536,6 +548,10 @@ void system::request_terminate() {
 bool system::terminate_is_requested() const {
     std::lock_guard<std::mutex> lock(mtx_terminate_);
     return terminate_is_requested_;
+}
+
+void system::reset_tracker() {
+    tracker_->reset();
 }
 
 camera::base* system::get_camera() const {
