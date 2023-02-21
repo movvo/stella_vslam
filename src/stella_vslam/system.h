@@ -61,6 +61,9 @@ public:
     //-----------------------------------------
     // system startup and shutdown
 
+    //! Print system information
+    void print_info();
+
     //! Startup the SLAM system
     void startup(const bool need_initialize = true);
 
@@ -76,11 +79,11 @@ public:
     //! Save the keyframe trajectory in the specified format
     void save_keyframe_trajectory(const std::string& path, const std::string& format) const;
 
-    //! Load the map database from the MessagePack file
-    void load_map_database(const std::string& path) const;
+    //! Load the map database from file
+    bool load_map_database(const std::string& path) const;
 
-    //! Save the map database to the MessagePack file
-    void save_map_database(const std::string& path) const;
+    //! Save the map database to file
+    bool save_map_database(const std::string& path) const;
 
     //! Get the map publisher
     const std::shared_ptr<publish::map_publisher> get_map_publisher() const;
@@ -108,6 +111,9 @@ public:
 
     //! The loop detector is enabled or not
     bool loop_detector_is_enabled() const;
+
+    //! Request loop closure
+    bool request_loop_closure(int keyfrm1_id, int keyfrm2_id);
 
     //! Loop BA is running or not
     bool loop_BA_is_running() const;
@@ -175,6 +181,8 @@ public:
 
     //-----------------------------------------
     // config
+
+    camera::base* get_camera() const;
 
     //! depthmap factor (pixel_value / depthmap_factor = true_depth)
     double depthmap_factor_ = 1.0;

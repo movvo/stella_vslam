@@ -6,6 +6,9 @@ set(spdlog_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/spdlog/include)
 # json
 set(json_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/json/include)
 
+# tinycolormap
+set(tinycolormap_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/tinycolormap/include)
+
 # sqlite3
 find_package(SQLite3 REQUIRED)
 
@@ -23,6 +26,18 @@ find_package(g2o REQUIRED
              OPTIONAL_COMPONENTS
              g2o::csparse)
 
+# gtsam
+set(USE_GTSAM ON CACHE BOOL "Enable gtsam")
+unset(GTSAM_INCLUDE_DIRS CACHE)
+find_path(GTSAM_INCLUDE_DIRS NAMES gtsam
+          PATHS /usr/local/include/)
+if(USE_GTSAM AND GTSAM_INCLUDE_DIRS)
+    message(STATUS "gtsam: enabled (Found in ${GTSAM_INCLUDE_DIRS})")
+else()
+    set(USE_GTSAM OFF)
+    message(STATUS "gtsam: disabled")
+endif()
+
 # Check first if CSparse is built from g2o
 if(TARGET g2o::csparse)
     set(${CXSPARSE_LIBRARIES} g2o::csparse)
@@ -33,13 +48,15 @@ else()
         include_directories(${CXSPARSE_INCLUDE_DIRS})
     endif()
     # SuiteSparse for g2o
-    if(MSVC)
-        find_package(SuiteSparse CONFIG)
-    else()
-        find_package(SuiteSparse)
-    endif()
-    if(SUITESPARSE_FOUND)
-        include_directories(${SUITESPARSE_INCLUDE_DIRS})
+    if(NOT SUITESPARSE_FOUND)
+        if(MSVC)
+            find_package(SuiteSparse CONFIG)
+        else()
+            find_package(SuiteSparse)
+        endif()
+        if(SUITESPARSE_FOUND)
+            include_directories(${SUITESPARSE_INCLUDE_DIRS})
+        endif()
     endif()
 endif()
 
@@ -77,6 +94,11 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 
 # ----- Compile configuration -----
+
+# gtsam
+if (USE_GTSAM)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC USE_GTSAM)
+endif()
 
 # OpenMP
 set(USE_OPENMP OFF CACHE BOOL "Use OpenMP")
@@ -156,6 +178,7 @@ endif()
 target_include_directories(${PROJECT_NAME}
                            PUBLIC
                            "$<BUILD_INTERFACE:${json_INCLUDE_DIR}>"
+                           "$<BUILD_INTERFACE:${tinycolormap_INCLUDE_DIR}>"
                            "$<BUILD_INTERFACE:${spdlog_INCLUDE_DIR}>"
                            "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/>"
                            "$<INSTALL_INTERFACE:include/stella_vslam/3rd/json/include>"
@@ -182,6 +205,7 @@ target_link_libraries(${PROJECT_NAME}
                       g2o::solver_eigen
                       g2o::solver_csparse
                       g2o::csparse_extension
+                      "$<$<BOOL:${USE_GTSAM}>:gtsam>"
                       ${CXSPARSE_LIBRARIES}
                       ${SUITESPARSE_LIBRARIES}
                       ${BoW_LIBRARY}
@@ -207,6 +231,8 @@ install(FILES ${HEADERS}
 # Install 3rd party headers
 install(FILES ${json_INCLUDE_DIR}/nlohmann/json.hpp ${json_INCLUDE_DIR}/nlohmann/json_fwd.hpp
         DESTINATION ${STELLA_VSLAM_INCLUDE_INSTALL_DIR}/3rd/json/include/nlohmann)
+install(DIRECTORY ${tinycolormap_INCLUDE_DIR}
+        DESTINATION ${STELLA_VSLAM_INCLUDE_INSTALL_DIR}/3rd/tinycolormap)
 install(DIRECTORY ${spdlog_INCLUDE_DIR}
         DESTINATION ${STELLA_VSLAM_INCLUDE_INSTALL_DIR}/3rd/spdlog)
 
