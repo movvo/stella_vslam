@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND noninteractive
 
 # install dependencies via apt
@@ -37,8 +37,7 @@ RUN set -x && \
     libavcodec-dev \
     libavformat-dev \
     libavutil-dev \
-    libswscale-dev \
-    libavresample-dev && \
+    libswscale-dev && \
   : "backward-cpp dependencies" && \
   apt install -y -qq binutils-dev && \
   : "other dependencies" && \
@@ -83,7 +82,7 @@ RUN set -x && \
 ENV Eigen3_DIR=${CMAKE_INSTALL_PREFIX}/share/eigen3/cmake
 
 # g2o
-ARG G2O_COMMIT=ed40a5bb028566fd56a78fd7b04921b613492d6f
+ARG G2O_COMMIT=20230223_git
 WORKDIR /tmp
 RUN set -x && \
   git clone https://github.com/RainerKuemmerle/g2o.git && \

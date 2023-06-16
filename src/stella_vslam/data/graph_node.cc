@@ -364,9 +364,9 @@ void graph_node::recover_spanning_connections() {
     spanning_parent_.lock()->graph_node_->erase_spanning_child(owner_keyfrm_.lock());
 }
 
-std::set<std::shared_ptr<keyframe>> graph_node::get_spanning_children() const {
+id_ordered_set<std::shared_ptr<keyframe>> graph_node::get_spanning_children() const {
     std::lock_guard<std::mutex> lock(mtx_);
-    std::set<std::shared_ptr<keyframe>> locked_spanning_children;
+    id_ordered_set<std::shared_ptr<keyframe>> locked_spanning_children;
     for (const auto& keyfrm : spanning_children_) {
         locked_spanning_children.insert(keyfrm.lock());
     }
@@ -458,8 +458,8 @@ template<typename T, typename U>
 std::vector<std::shared_ptr<keyframe>> graph_node::extract_intersection(const T& keyfrms_1, const U& keyfrms_2) {
     std::vector<std::shared_ptr<keyframe>> intersection;
     intersection.reserve(std::min(keyfrms_1.size(), keyfrms_2.size()));
-    for (const auto keyfrm_1 : keyfrms_1) {
-        for (const auto keyfrm_2 : keyfrms_2) {
+    for (const auto& keyfrm_1 : keyfrms_1) {
+        for (const auto& keyfrm_2 : keyfrms_2) {
             if (*keyfrm_1 == *keyfrm_2) {
                 intersection.push_back(keyfrm_1);
             }
