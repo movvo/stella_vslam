@@ -149,8 +149,8 @@ void local_bundle_adjuster_g2o::optimize(data::map_database* map_db,
     // 2. Construct an optimizer
 
     std::unique_ptr<g2o::BlockSolverBase> block_solver;
-    auto linear_solver = g2o::make_unique<g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>>();
-    block_solver = g2o::make_unique<g2o::BlockSolver_6_3>(std::move(linear_solver));
+    auto linear_solver = stella_vslam::make_unique<g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>>();
+    block_solver = stella_vslam::make_unique<g2o::BlockSolver_6_3>(std::move(linear_solver));
     auto algorithm = new g2o::OptimizationAlgorithmLevenberg(std::move(block_solver));
 
     g2o::SparseOptimizer optimizer;
@@ -379,7 +379,7 @@ void local_bundle_adjuster_g2o::optimize(data::map_database* map_db,
             const auto& local_keyfrm = id_local_keyfrm_pair.second;
 
             auto keyfrm_vtx = keyfrm_vtx_container.get_vertex(local_keyfrm);
-            local_keyfrm->set_pose_cw(keyfrm_vtx->estimate());
+            local_keyfrm->set_pose_cw(util::converter::to_eigen_mat(keyfrm_vtx->estimate()));
         }
 
         for (const auto& id_local_lm_pair : local_lms) {

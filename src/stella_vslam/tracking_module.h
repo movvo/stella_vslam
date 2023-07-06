@@ -140,7 +140,10 @@ protected:
     bool initialize();
 
     //! Main stream of the tracking module
-    bool track(bool relocalization_is_needed);
+    bool track(bool relocalization_is_needed,
+               unsigned int& num_tracked_lms,
+               unsigned int& num_reliable_lms,
+               const unsigned int min_num_obs_thr);
     bool track_local_map(unsigned int& num_tracked_lms,
                          unsigned int& num_reliable_lms,
                          unsigned int min_num_obs_thr);
@@ -179,9 +182,6 @@ protected:
     bool new_keyframe_is_needed(unsigned int num_tracked_lms,
                                 unsigned int num_reliable_lms,
                                 const unsigned int min_num_obs_thr) const;
-
-    //! Insert the new keyframe derived from the current frame
-    void insert_new_keyframe();
 
     //! mapping module
     mapping_module* mapper_ = nullptr;
