@@ -13,6 +13,8 @@
 namespace stella_vslam {
 namespace feature {
 
+const int EDGE_THRESHOLD = 19;
+
 orb_extractor::orb_extractor(const orb_params* orb_params,
                              const unsigned int min_size,
                              const std::vector<std::vector<float>>& mask_rects)
@@ -28,7 +30,7 @@ void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArr
     }
 
     // get cv::Mat of image
-    const auto image = in_image.getMat();
+    cv::Mat image = in_image.getMat();
     assert(image.type() == CV_8UC1);
 
     // build image pyramid
@@ -115,14 +117,38 @@ void orb_extractor::create_rectangle_mask(const unsigned int cols, const unsigne
 }
 
 void orb_extractor::compute_image_pyramid(const cv::Mat& image) {
-    image_pyramid_.at(0) = image;
-    for (unsigned int level = 1; level < orb_params_->num_levels_; ++level) {
-        // determine the size of an image
-        const double scale = orb_params_->scale_factors_.at(level);
-        const cv::Size size(std::round(image.cols * 1.0 / scale), std::round(image.rows * 1.0 / scale));
-        // resize
-        cv::resize(image_pyramid_.at(level - 1), image_pyramid_.at(level), size, 0, 0, cv::INTER_LINEAR);
+    if (!is_image_pyramid_allocated_) {
+        // First frame, allocate the pyramids
+        for (int level = 0; level < orb_params_->num_levels_; ++level) {
+            double scale = mvInvScaleFactor[level];
+            cv::Size size(std::round((float)image.cols * scale), std::round((float)image.rows * scale));
+            cv::Size wholeSize(size.width + EDGE_THRESHOLD * 2, size.height + EDGE_THRESHOLD * 2);
+            cv::cuda::GpuMat target(wholeSize, image.type());
+            image_pyramid_border_.push_back(target);
+            image_pyramid_.push_back(target(cv::Rect(EDGE_THRESHOLD, EDGE_THRESHOLD, size.width, size.height)));
+        }
+        image_pyramid_border_.resize(orb_params_->num_levels_);
+        image_pyramid_.resize(orb_params_->num_levels_);
+        mpGaussianFilter = cv::cuda::createGaussianFilter(image_pyramid_[0].type(), image_pyramid_[0].type(), cv::Size(7, 7), 2, 2, cv::BORDER_REFLECT_101);
+        is_image_pyramid_allocated_ = true;
     }
+
+    for (int level = 0; level < orb_params_->num_levels_; ++level) {
+        double scale = mvInvScaleFactor[level];
+        cv::Size size(std::round((float)image.cols * scale), std::round((float)image.rows * scale));
+        cv::cuda::GpuMat target(image_pyramid_border_[level]);
+        // Compute the resized image
+        if (level != 0) {
+            cv::cuda::resize(image_pyramid_[level - 1], image_pyramid_[level], size, 0, 0, cv::INTER_LINEAR, mcvStream);
+            cv::cuda::copyMakeBorder(image_pyramid_[level], target, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD,
+                cv::BORDER_REFLECT_101, cv::Scalar(), mcvStream);
+        } else {
+            cv::cuda::GpuMat gpuImg(image);
+            cv::cuda::copyMakeBorder(gpuImg, target, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD,
+                cv::BORDER_REFLECT_101, cv::Scalar(), mcvStream);
+        }
+    }
+    mcvStream.waitForCompletion();
 }
 
 void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>>& all_keypts, const cv::Mat& mask) const {

@@ -4,9 +4,13 @@
 #include "stella_vslam/feature/orb_params.h"
 #include "stella_vslam/feature/orb_extractor_node.h"
 #include "stella_vslam/feature/orb_impl.h"
+#include "stella_vslam/feature/cuda/Fast.hpp"
+#include "stella_vslam/feature/cuda/Orb.hpp"
 
-#include <opencv2/core/mat.hpp>
-#include <opencv2/core/types.hpp>
+
+#include <opencv/cv.h>
+#include <opencv2/core/cuda.hpp>
+#include <opencv2/cudafilters.hpp>
 
 namespace stella_vslam {
 namespace feature {
@@ -35,7 +39,9 @@ public:
     std::vector<std::vector<float>> mask_rects_;
 
     //! Image pyramid
-    std::vector<cv::Mat> image_pyramid_;
+    bool is_image_pyramid_allocated_; // flag
+    std::vector<cv::cuda::GpuMat> image_pyramid_;
+    std::vector<cv::cuda::GpuMat> image_pyramid_border_;
 
 private:
     //! Calculate scale factors and sigmas
@@ -92,6 +98,9 @@ private:
     cv::Mat rect_mask_;
 
     orb_impl orb_impl_;
+
+    //! Cuda needed variables
+    cuda::Stream mcvStream; // A sequence of operations that execute in issue-order on the GPU
 };
 
 } // namespace feature
