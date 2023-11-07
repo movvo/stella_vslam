@@ -284,6 +284,8 @@ void system::enable_temporal_mapping() {
 }
 
 data::frame system::create_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
+    std::cout<<"create_monocular_frame pid: "<< std::string(getpid())<<std::endl;
+    std::cout<<"create_monocular_frame tid: "<< std::string(std::this_thread::get_id())<<std::endl;
     // color conversion
     if (!camera_->is_valid_shape(img)) {
         spdlog::warn("preprocess: Input image size is invalid");
@@ -447,7 +449,11 @@ std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const 
         spdlog::warn("preprocess: empty image");
         return nullptr;
     }
-    return feed_frame(create_monocular_frame(img, timestamp, mask), img);
+    std::cout<<"feed_monocular_frame pid: "<< std::string(getpid())<<std::endl;
+    std::cout<<"feed_monocular_frame tid: "<< std::string(std::this_thread::get_id())<<std::endl;
+    auto frame = create_monocular_frame(img, timestamp, mask);
+    auto res = feed_frame(frame, img);
+    return res;
 }
 
 std::shared_ptr<Mat44_t> system::feed_stereo_frame(const cv::Mat& left_img, const cv::Mat& right_img, const double timestamp, const cv::Mat& mask) {
@@ -469,6 +475,8 @@ std::shared_ptr<Mat44_t> system::feed_RGBD_frame(const cv::Mat& rgb_img, const c
 }
 
 std::shared_ptr<Mat44_t> system::feed_frame(const data::frame& frm, const cv::Mat& img) {
+    std::cout<<"feed_frame(system) pid: "<< std::string(getpid())<<std::endl;
+    std::cout<<"feed_frame(system) tid: "<< std::string(std::this_thread::get_id())<<std::endl;
     check_reset_request();
 
     const auto start = std::chrono::system_clock::now();
