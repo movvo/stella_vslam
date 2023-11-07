@@ -284,8 +284,8 @@ void system::enable_temporal_mapping() {
 }
 
 data::frame system::create_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
-    std::cout<<"create_monocular_frame pid: "<< std::to_string(getpid())<<std::endl;
-    std::cout<<"create_monocular_frame tid: "<< std::string(std::this_thread::get_id())<<std::endl;
+    //std::cout<<"create_monocular_frame pid: "<< std::to_string(getpid())<<std::endl;
+    //std::cout<<"create_monocular_frame tid: "<< std::string(std::this_thread::get_id())<<std::endl;
     // color conversion
     if (!camera_->is_valid_shape(img)) {
         spdlog::warn("preprocess: Input image size is invalid");
@@ -450,7 +450,7 @@ std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const 
         return nullptr;
     }
     std::cout<<"feed_monocular_frame pid: "<< std::to_string(getpid())<<std::endl;
-    std::cout<<"feed_monocular_frame tid: "<< std::string(std::this_thread::get_id())<<std::endl;
+    //std::cout<<"feed_monocular_frame tid: "<< std::string(std::this_thread::get_id())<<std::endl;
     auto frame = create_monocular_frame(img, timestamp, mask);
     auto res = feed_frame(frame, img);
     return res;
