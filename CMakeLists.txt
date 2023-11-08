@@ -25,9 +25,9 @@ endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 option(BUILD_SHARED_LIBS "Build stella_vslam as a shared library" ON)
+option(USE_CUDA "Enable CUDA support" ON)  # Add CUDA support
 
 # ----- Build selection -----
-
 set(USE_PANGOLIN_VIEWER OFF CACHE BOOL "Enable Pangolin Viewer")
 set(INSTALL_PANGOLIN_VIEWER OFF CACHE BOOL "Install PangolinViewer library")
 set(USE_SOCKET_PUBLISHER OFF CACHE BOOL "Enable Socket Publisher")
@@ -117,6 +117,18 @@ if(NOT OpenCV_FOUND)
     endif()
 endif()
 message(STATUS "Use OpenCV ${OpenCV_VERSION}")
+
+set(CUDA_TOOLKIT_ROOT_DIR /usr/local/cuda)
+#  CUDA
+find_package(CUDA QUIET REQUIRED)
+set(CUDA_PROPAGATE_HOST_FLAGS OFF)
+SET(CUDA_HOST_COMPILER /usr/bin/g++)
+LIST(APPEND CUDA_NVCC_FLAGS "--compiler-options -fno-strict-aliasing -use_fast_math")
+
+if(USE_CUDA)
+    # Configurar las banderas CUDA
+    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11")
+endif()
 
 # Check aruco module
 set(USE_ARUCO ON CACHE BOOL "Enable aruco")

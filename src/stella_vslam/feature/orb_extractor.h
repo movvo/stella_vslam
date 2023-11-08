@@ -7,8 +7,6 @@
 #include "stella_vslam/feature/cuda/Fast.hpp"
 #include "stella_vslam/feature/cuda/Orb.hpp"
 
-
-#include <opencv/cv.h>
 #include <opencv2/core/cuda.hpp>
 #include <opencv2/cudafilters.hpp>
 

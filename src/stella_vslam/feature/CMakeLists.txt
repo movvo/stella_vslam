@@ -14,3 +14,6 @@ target_sources(${PROJECT_NAME}
 file(GLOB HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 install(FILES ${HEADERS}
         DESTINATION ${STELLA_VSLAM_INCLUDE_INSTALL_DIR}/feature)
+
+# Append subdirectory
+add_subdirectory(cuda)
