@@ -120,7 +120,7 @@ void orb_extractor::compute_image_pyramid(const cv::Mat& image) {
     if (!is_image_pyramid_allocated_) {
         // First frame, allocate the pyramids
         for (int level = 0; level < orb_params_->num_levels_; ++level) {
-            double scale = mvInvScaleFactor[level];
+            double scale = orb_params_->scale_factors_.at(level);
             cv::Size size(std::round((float)image.cols * scale), std::round((float)image.rows * scale));
             cv::Size wholeSize(size.width + EDGE_THRESHOLD * 2, size.height + EDGE_THRESHOLD * 2);
             cv::cuda::GpuMat target(wholeSize, image.type());
@@ -129,26 +129,26 @@ void orb_extractor::compute_image_pyramid(const cv::Mat& image) {
         }
         image_pyramid_border_.resize(orb_params_->num_levels_);
         image_pyramid_.resize(orb_params_->num_levels_);
-        mpGaussianFilter = cv::cuda::createGaussianFilter(image_pyramid_[0].type(), image_pyramid_[0].type(), cv::Size(7, 7), 2, 2, cv::BORDER_REFLECT_101);
+        gaussian_filter_ = cv::cuda::createGaussianFilter(image_pyramid_[0].type(), image_pyramid_[0].type(), cv::Size(7, 7), 2, 2, cv::BORDER_REFLECT_101);
         is_image_pyramid_allocated_ = true;
     }
 
     for (int level = 0; level < orb_params_->num_levels_; ++level) {
-        double scale = mvInvScaleFactor[level];
+        double scale = orb_params_->scale_factors_.at(level);
         cv::Size size(std::round((float)image.cols * scale), std::round((float)image.rows * scale));
         cv::cuda::GpuMat target(image_pyramid_border_[level]);
         // Compute the resized image
         if (level != 0) {
-            cv::cuda::resize(image_pyramid_[level - 1], image_pyramid_[level], size, 0, 0, cv::INTER_LINEAR, mcvStream);
+            cv::cuda::resize(image_pyramid_[level - 1], image_pyramid_[level], size, 0, 0, cv::INTER_LINEAR, mcvStream_);
             cv::cuda::copyMakeBorder(image_pyramid_[level], target, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD,
-                cv::BORDER_REFLECT_101, cv::Scalar(), mcvStream);
+                cv::BORDER_REFLECT_101, cv::Scalar(), mcvStream_);
         } else {
             cv::cuda::GpuMat gpuImg(image);
             cv::cuda::copyMakeBorder(gpuImg, target, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD,
-                cv::BORDER_REFLECT_101, cv::Scalar(), mcvStream);
+                cv::BORDER_REFLECT_101, cv::Scalar(), mcvStream_);
         }
     }
-    mcvStream.waitForCompletion();
+    mcvStream_.waitForCompletion();
 }
 
 void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>>& all_keypts, const cv::Mat& mask) const {

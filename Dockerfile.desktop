@@ -38,13 +38,21 @@ RUN set -x && \
   : "backward-cpp dependencies" && \
   apt install -y -qq binutils-dev && \
   : "other dependencies" && \
-  apt-get install -y -qq \
+  apt install -y -qq \
     libyaml-cpp-dev \
     sqlite3 \
-    libsqlite3-dev && \
+    libsqlite3-dev \
+    gcc-10 g++-10 \
+    nvidia-cuda-toolkit && \
   : "remove cache" && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*
+
+# Downgrade GCC/G++ version (needed to build opencv with CUDA)
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 10 && \
+  update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 10 && \
+  update-alternatives --config gcc && \
+  update-alternatives --config g++ 
 
 ARG CMAKE_INSTALL_PREFIX=/usr/local
 ARG NUM_THREADS=1
@@ -115,31 +123,16 @@ RUN set -x && \
   rm -rf ${OPENCV_VERSION}.zip && \
   wget -q https://github.com/opencv/opencv_contrib/archive/${OPENCV_VERSION}.zip && \
   unzip -q ${OPENCV_VERSION}.zip && \
-  rm -rf ${OPENCV_VERSION}.zip \
+  rm -rf ${OPENCV_VERSION}.zip && \
   cd opencv-${OPENCV_VERSION} && \
   mkdir -p build && \
   cd build && \
   cmake \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
-    -DBUILD_DOCS=OFF \
-    -DBUILD_EXAMPLES=OFF \
-    -DBUILD_JASPER=OFF \
-    -DBUILD_OPENEXR=OFF \
-    -DBUILD_PERF_TESTS=OFF \
-    -DBUILD_TESTS=OFF \
-    -DBUILD_PROTOBUF=OFF \
-    -DBUILD_opencv_apps=OFF \
-    -DBUILD_opencv_dnn=OFF \
-    -DBUILD_opencv_ml=OFF \
-    -DBUILD_opencv_python_bindings_generator=OFF \
-    -DENABLE_CXX11=ON \
-    -DENABLE_FAST_MATH=ON \
-    -DWITH_EIGEN=ON \
-    -DWITH_FFMPEG=ON \
-    -DWITH_TBB=ON \
-    -DWITH_OPENMP=ON \
-    -DOPENCV_EXTRA_MODULES_PATH=/tmp/opencv_contrib-${OPENCV_VERSION}/modules && \
+    -D CMAKE_BUILD_TYPE=RELEASE \
+    -D CMAKE_INSTALL_PREFIX=/usr/local \
+    -D WITH_CUDA=ON \
+    -D CUDA_ARCH_BIN=6.0,6.1,6.2,7.0,7.5,8.0,8.6 \
+    -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv_contrib-${OPENCV_VERSION}/modules \
     .. && \
   make -j${NUM_THREADS} && \
   make install && \

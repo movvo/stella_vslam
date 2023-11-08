@@ -9,6 +9,8 @@
 
 #include <opencv2/core/cuda.hpp>
 #include <opencv2/cudafilters.hpp>
+#include <opencv2/cudaarithm.hpp>
+#include <opencv2/cudawarping.hpp>
 
 namespace stella_vslam {
 namespace feature {
@@ -97,8 +99,11 @@ private:
 
     orb_impl orb_impl_;
 
+    std::vector<float> inv_scale_factor;
+
     //! Cuda needed variables
-    cuda::Stream mcvStream; // A sequence of operations that execute in issue-order on the GPU
+    cv::Ptr<cv::cuda::Filter> gaussian_filter_;
+    cuda::Stream mcvStream_; // A sequence of operations that execute in issue-order on the GPU
 };
 
 } // namespace feature
