@@ -357,7 +357,25 @@ data::frame system::create_stereo_frame(const cv::Mat& left_img, const cv::Mat& 
     camera_->undistort_keypoints(keypts_, frm_obs.undist_keypts_);
 
     // Estimate depth with stereo match
-    match::stereo stereo_matcher(extractor_left_->image_pyramid_, extractor_right_->image_pyramid_,
+    // Convert each GpuMat to Mat
+
+    // Create a vector of cv::Mat objects for storing the CPU versions of the images
+    std::vector<cv::Mat> left_pyramid;
+    std::vector<cv::Mat> right_pyramid;
+
+    // Convert each GpuMat to Mat
+    for (const cv::cuda::GpuMat& gpu_left_image : extractor_left_->image_pyramid_) {
+        cv::Mat left_image;
+        gpu_left_image.download(left_image);
+        left_pyramid.push_back(left_image);
+    }
+    for (const cv::cuda::GpuMat& gpu_right_image : extractor_right_->image_pyramid_) {
+        cv::Mat right_image;
+        gpu_right_image.download(right_image);
+        right_pyramid.push_back(right_image);
+    }
+
+    match::stereo stereo_matcher(left_pyramid, right_pyramid,
                                  keypts_, keypts_right, frm_obs.descriptors_, descriptors_right,
                                  orb_params_->scale_factors_, orb_params_->inv_scale_factors_,
                                  camera_->focal_x_baseline_, camera_->true_baseline_);
