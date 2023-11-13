@@ -60,7 +60,7 @@ void mapping_module::set_global_optimization_module(global_optimization_module* 
 }
 
 void mapping_module::run() {
-    spdlog::info("start mapping module");
+    spdlog::info("start mapping moduleeeee");
 
     is_terminated_ = false;
 
