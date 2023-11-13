@@ -479,7 +479,7 @@ std::shared_ptr<Mat44_t> system::feed_RGBD_frame(const cv::Mat& rgb_img, const c
 }
 
 std::shared_ptr<Mat44_t> system::feed_frame(const data::frame& frm, const cv::Mat& img) {
-    spdlog::warn("Holi?");
+    spdlog::info("Holi?");
     std::cout<<"feed_frame (system.cc) pid: "<< std::to_string(getppid())<<std::endl;
     auto myid = std::this_thread::get_id();
     std::stringstream ss;
