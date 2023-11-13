@@ -22,6 +22,7 @@
 #include "stella_vslam/util/converter.h"
 #include "stella_vslam/util/image_converter.h"
 #include "stella_vslam/util/yaml.h"
+#include <unistd.h>
 
 #include <thread>
 
@@ -279,6 +280,12 @@ void system::enable_temporal_mapping() {
 }
 
 data::frame system::create_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
+    std::cout<<"create_monocular_frame pid: "<< std::to_string(getppid())<<std::endl;
+    auto myid = std::this_thread::get_id();
+    std::stringstream ss;
+    ss << myid;
+    std::cout<<"create_monocular_frame tid: "<< ss.str()<<std::endl;
+
     // color conversion
     if (!camera_->is_valid_shape(img)) {
         spdlog::warn("preprocess: Input image size is invalid");
@@ -438,14 +445,22 @@ data::frame system::create_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& dep
 
 std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
     assert(camera_->setup_type_ == camera::setup_type_t::Monocular);
+    std::cout<<"feed_monocular_frame pid: "<< std::to_string(getppid())<<std::endl;
+    auto myid = std::this_thread::get_id();
+    std::stringstream ss;
+    ss << myid;
+    std::cout<<"feed_monocular_frame tid: "<< ss.str()<<std::endl;
     if (img.empty()) {
         spdlog::warn("preprocess: empty image");
         return nullptr;
     }
-    return feed_frame(create_monocular_frame(img, timestamp, mask), img);
+    auto frame = create_monocular_frame(img, timestamp, mask);
+    auto res = feed_frame(frame, img);
+    return res;
 }
 
 std::shared_ptr<Mat44_t> system::feed_stereo_frame(const cv::Mat& left_img, const cv::Mat& right_img, const double timestamp, const cv::Mat& mask) {
+    std::cout<<"Holi?"<<std::endl;
     assert(camera_->setup_type_ == camera::setup_type_t::Stereo);
     if (left_img.empty() || right_img.empty()) {
         spdlog::warn("preprocess: empty image");
@@ -464,6 +479,12 @@ std::shared_ptr<Mat44_t> system::feed_RGBD_frame(const cv::Mat& rgb_img, const c
 }
 
 std::shared_ptr<Mat44_t> system::feed_frame(const data::frame& frm, const cv::Mat& img) {
+    spdlog::warn("Holi?");
+    std::cout<<"feed_frame (system.cc) pid: "<< std::to_string(getppid())<<std::endl;
+    auto myid = std::this_thread::get_id();
+    std::stringstream ss;
+    ss << myid;
+    std::cout<<"feed_frame(system.cc) tid: "<< ss.str()<<std::endl;
     check_reset_request();
 
     const auto start = std::chrono::system_clock::now();

@@ -11,6 +11,7 @@
 #include "stella_vslam/module/local_map_updater.h"
 #include "stella_vslam/optimize/pose_optimizer_factory.h"
 #include "stella_vslam/util/yaml.h"
+#include <unistd.h>
 
 #include <chrono>
 #include <unordered_map>
@@ -115,6 +116,11 @@ void tracking_module::reset() {
 
 std::shared_ptr<Mat44_t> tracking_module::feed_frame(data::frame curr_frm) {
     // check if pause is requested
+    std::cout<<"feed_frame (tracking_modules.cc) pid: "<< std::to_string(getppid())<<std::endl;
+    auto myid = std::this_thread::get_id();
+    std::stringstream ss;
+    ss << myid;
+    std::cout<<"feed_frame(tracking_modules.cc) tid: "<< ss.str()<<std::endl;
     pause_if_requested();
     while (is_paused()) {
         std::this_thread::sleep_for(std::chrono::microseconds(5000));
