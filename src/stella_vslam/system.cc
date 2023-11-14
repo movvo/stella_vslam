@@ -445,7 +445,6 @@ data::frame system::create_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& dep
 
 std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
     assert(camera_->setup_type_ == camera::setup_type_t::Monocular);
-    spdlog::info("Feed monocular frame");
     std::cout<<"feed_monocular_frame pid: "<< std::to_string(getppid())<<std::endl;
     auto myid = std::this_thread::get_id();
     std::stringstream ss;
@@ -461,7 +460,6 @@ std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const 
 }
 
 std::shared_ptr<Mat44_t> system::feed_stereo_frame(const cv::Mat& left_img, const cv::Mat& right_img, const double timestamp, const cv::Mat& mask) {
-    std::cout<<"Holi?"<<std::endl;
     assert(camera_->setup_type_ == camera::setup_type_t::Stereo);
     if (left_img.empty() || right_img.empty()) {
         spdlog::warn("preprocess: empty image");
@@ -480,7 +478,6 @@ std::shared_ptr<Mat44_t> system::feed_RGBD_frame(const cv::Mat& rgb_img, const c
 }
 
 std::shared_ptr<Mat44_t> system::feed_frame(const data::frame& frm, const cv::Mat& img) {
-    spdlog::info("Holi?");
     std::cout<<"feed_frame (system.cc) pid: "<< std::to_string(getppid())<<std::endl;
     auto myid = std::this_thread::get_id();
     std::stringstream ss;
