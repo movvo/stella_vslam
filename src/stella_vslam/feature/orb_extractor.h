@@ -6,6 +6,7 @@
 #include "stella_vslam/feature/orb_impl.h"
 #include "stella_vslam/feature/cuda/Fast.hpp"
 #include "stella_vslam/feature/cuda/Orb.hpp"
+#include "stella_vslam/feature/cuda/Allocator.hpp"
 
 #include <opencv2/core/cuda.hpp>
 #include <opencv2/cudafilters.hpp>
@@ -104,6 +105,7 @@ private:
     //! Cuda needed variables
     cv::Ptr<cv::cuda::Filter> gaussian_filter_;
     cuda::Stream mcvStream_; // A sequence of operations that execute in issue-order on the GPU
+    cuda::GpuFast fast_detector_; // Fast detector
 };
 
 } // namespace feature

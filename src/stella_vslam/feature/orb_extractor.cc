@@ -13,14 +13,15 @@
 namespace stella_vslam {
 namespace feature {
 
-const int EDGE_THRESHOLD = 19;
-
 orb_extractor::orb_extractor(const orb_params* orb_params,
                              const unsigned int min_size,
                              const std::vector<std::vector<float>>& mask_rects)
     : orb_params_(orb_params), mask_rects_(mask_rects), min_size_(min_size) {
     // resize buffers according to the number of levels
     image_pyramid_.resize(orb_params_->num_levels_);
+        
+    is_image_pyramid_allocated_ = false;
+    fast_detector_(orb_params_->ini_fast_thr_, orb_params_->min_fast_thr_);
 }
 
 void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArray& in_image_mask,
@@ -87,7 +88,7 @@ void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArr
             continue;
         }
 
-        cv::Mat blurred_image = image_pyramid_.at(level).clone();
+        cv::Mat blurred_image = image_pyramid_[level].clone();
         cv::GaussianBlur(blurred_image, blurred_image, cv::Size(7, 7), 2, 2, cv::BORDER_REFLECT_101);
 
         cv::Mat descriptors_at_level = descriptors.rowRange(offset, offset + num_keypts_at_level);
@@ -122,10 +123,10 @@ void orb_extractor::compute_image_pyramid(const cv::Mat& image) {
         for (int level = 0; level < orb_params_->num_levels_; ++level) {
             double scale = orb_params_->scale_factors_.at(level);
             cv::Size size(std::round((float)image.cols * scale), std::round((float)image.rows * scale));
-            cv::Size wholeSize(size.width + EDGE_THRESHOLD * 2, size.height + EDGE_THRESHOLD * 2);
-            cv::cuda::GpuMat target(wholeSize, image.type());
+            cv::Size wholeSize(size.width + orb_patch_radius_ * 2, size.height + orb_patch_radius_ * 2);
+            cv::cuda::GpuMat target(wholeSize, image.type(), cuda::gpu_mat_allocator);
             image_pyramid_border_.push_back(target);
-            image_pyramid_.push_back(target(cv::Rect(EDGE_THRESHOLD, EDGE_THRESHOLD, size.width, size.height)));
+            image_pyramid_.push_back(target(cv::Rect(orb_patch_radius_, orb_patch_radius_, size.width, size.height)));
         }
         image_pyramid_border_.resize(orb_params_->num_levels_);
         image_pyramid_.resize(orb_params_->num_levels_);
@@ -140,11 +141,11 @@ void orb_extractor::compute_image_pyramid(const cv::Mat& image) {
         // Compute the resized image
         if (level != 0) {
             cv::cuda::resize(image_pyramid_[level - 1], image_pyramid_[level], size, 0, 0, cv::INTER_LINEAR, mcvStream_);
-            cv::cuda::copyMakeBorder(image_pyramid_[level], target, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD,
+            cv::cuda::copyMakeBorder(image_pyramid_[level], target, orb_patch_radius_, orb_patch_radius_, orb_patch_radius_, orb_patch_radius_,
                 cv::BORDER_REFLECT_101, cv::Scalar(), mcvStream_);
         } else {
             cv::cuda::GpuMat gpuImg(image);
-            cv::cuda::copyMakeBorder(gpuImg, target, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD,
+            cv::cuda::copyMakeBorder(gpuImg, target, orb_patch_radius_, orb_patch_radius_, orb_patch_radius_, orb_patch_radius_,
                 cv::BORDER_REFLECT_101, cv::Scalar(), mcvStream_);
         }
     }
@@ -154,124 +155,56 @@ void orb_extractor::compute_image_pyramid(const cv::Mat& image) {
 void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>>& all_keypts, const cv::Mat& mask) const {
     all_keypts.resize(orb_params_->num_levels_);
 
-    // An anonymous function which checks mask(image or rectangle)
-    auto is_in_mask = [&mask](const unsigned int y, const unsigned int x, const float scale_factor) {
-        return mask.at<unsigned char>(y * scale_factor, x * scale_factor) == 0;
-    };
-
-    constexpr unsigned int overlap = 6;
-    constexpr unsigned int cell_size = 64;
-
-#ifdef USE_OPENMP
-#pragma omp parallel for
-#endif
-    for (int64_t level = 0; level < orb_params_->num_levels_; ++level) {
+    constexpr unsigned int min_border_x = orb_patch_radius_;
+    constexpr unsigned int min_border_y = orb_patch_radius_;
+    for (int level = 0; level < orb_params_->num_levels_; ++level)
+    {
         const float scale_factor = orb_params_->scale_factors_.at(level);
-
-        constexpr unsigned int min_border_x = orb_patch_radius_;
-        constexpr unsigned int min_border_y = orb_patch_radius_;
-        const unsigned int max_border_x = image_pyramid_.at(level).cols - orb_patch_radius_;
-        const unsigned int max_border_y = image_pyramid_.at(level).rows - orb_patch_radius_;
-
-        const unsigned int width = max_border_x - min_border_x;
-        const unsigned int height = max_border_y - min_border_y;
-
-        const unsigned int num_cols = std::ceil(width / cell_size) + 1;
-        const unsigned int num_rows = std::ceil(height / cell_size) + 1;
+        const unsigned int max_border_x = image_pyramid_[level].cols - orb_patch_radius_;
+        const unsigned int max_border_y = image_pyramid_[level].rows - orb_patch_radius_;
 
         std::vector<cv::KeyPoint> keypts_to_distribute;
 
-#ifdef USE_OPENMP
-#pragma omp parallel for
-#endif
-        for (int64_t i = 0; i < num_rows; ++i) {
-            const unsigned int min_y = min_border_y + i * cell_size;
-            if (max_border_y - overlap <= min_y) {
-                continue;
-            }
-            unsigned int max_y = min_y + cell_size + overlap;
-            if (max_border_y < max_y) {
-                max_y = max_border_y;
-            }
-
-#ifdef USE_OPENMP
-#pragma omp parallel for
-#endif
-            for (int64_t j = 0; j < num_cols; ++j) {
-                const unsigned int min_x = min_border_x + j * cell_size;
-                if (max_border_x - overlap <= min_x) {
-                    continue;
-                }
-                unsigned int max_x = min_x + cell_size + overlap;
-                if (max_border_x < max_x) {
-                    max_x = max_border_x;
-                }
-
-                // Pass FAST computation if one of the corners of a patch is in the mask
-                if (!mask.empty()) {
-                    if (is_in_mask(min_y, min_x, scale_factor) || is_in_mask(max_y, min_x, scale_factor)
-                        || is_in_mask(min_y, max_x, scale_factor) || is_in_mask(max_y, max_x, scale_factor)) {
-                        continue;
-                    }
-                }
-
-                std::vector<cv::KeyPoint> keypts_in_cell;
-                cv::FAST(image_pyramid_.at(level).rowRange(min_y, max_y).colRange(min_x, max_x),
-                         keypts_in_cell, orb_params_->ini_fast_thr_, true);
-
-                // Re-compute FAST keypoint with reduced threshold if enough keypoint was not got
-                if (keypts_in_cell.empty()) {
-                    cv::FAST(image_pyramid_.at(level).rowRange(min_y, max_y).colRange(min_x, max_x),
-                             keypts_in_cell, orb_params_->min_fast_thr_, true);
-                }
-
-                if (keypts_in_cell.empty()) {
-                    continue;
-                }
-
-                // Collect keypoints for every scale
-#ifdef USE_OPENMP
-#pragma omp critical
-#endif
-                {
-                    for (auto& keypt : keypts_in_cell) {
-                        keypt.pt.x += j * cell_size;
-                        keypt.pt.y += i * cell_size;
-                        // Check if the keypoint is in the mask
-                        if (!mask.empty() && is_in_mask(min_border_y + keypt.pt.y, min_border_x + keypt.pt.x, scale_factor)) {
-                            continue;
-                        }
-                        keypts_to_distribute.push_back(keypt);
-                    }
-                }
-            }
+        // software pipelining
+        if (level == 0) {
+          fast_detector_.detectAsync(image_pyramid_[level].rowRange(min_border_y, max_border_y).colRange(min_border_x, max_border_x));
         }
-
-        std::vector<cv::KeyPoint>& keypts_at_level = all_keypts.at(level);
-
-        // Distribute keypoints via tree
-        keypts_at_level = distribute_keypoints_via_tree(keypts_to_distribute,
-                                                        min_border_x, max_border_x, min_border_y, max_border_y,
-                                                        scale_factor);
-        SPDLOG_TRACE("keypts_at_level {} filtered={} raw={}", level, keypts_at_level.size(), keypts_to_distribute.size());
-
-        // Keypoint size is patch size modified by the scale factor
-        const unsigned int scaled_patch_size = orb_impl_.fast_patch_size_ * scale_factor;
-
-        for (auto& keypt : keypts_at_level) {
-            // Translation correction (scale will be corrected after ORB description)
-            keypt.pt.x += min_border_x;
-            keypt.pt.y += min_border_y;
-            // Set the other information
-            keypt.octave = level;
-            keypt.size = scaled_patch_size;
+        fast_detector_.joinDetectAsync(keypts_to_distribute);
+        if (level + 1 < orb_params_->num_levels_) {
+          const int max_border_x = image_pyramid_[level+1].cols-orb_patch_radius_;
+          const int max_border_y = image_pyramid_[level+1].rows-orb_patch_radius_;
+          fast_detector_.detectAsync(image_pyramid_[level+1].rowRange(min_border_y, max_border_y).colRange(min_border_x, max_border_x));
         }
-    }
+        // TODO: 
+    //     // compute orientations and Gaussian Blur
+    //     if (level != 0) {
+    //       ic_angle.launch_async(image_pyramid_[level-1], all_keypts[level-1].data(), all_keypts[level-1].size(), HALF_PATCH_SIZE, min_border_x, min_border_y, level-1, PATCH_SIZE * scale_factor);
+    //       cv::cuda::GpuMat &gMat = image_pyramid_[level-1];
+    //       gaussian_filter_->apply(gMat, gMat, ic_angle.cvStream());
+    //     }
 
-    // Compute orientations
-    for (unsigned int level = 0; level < orb_params_->num_levels_; ++level) {
-        compute_orientation(image_pyramid_.at(level), all_keypts.at(level));
-    }
+    //     vector<KeyPoint> & keypoints = all_keypts[level];
+    //     keypoints.reserve(nfeatures);
+
+    //     PUSH_RANGE("DistributeOctTree", 3);
+    //     keypoints = DistributeOctTree(vToDistributeKeys, min_border_x, maxBorderX, min_border_y, maxBorderY,mnFeaturesPerLevel[level], level);
+    //     POP_RANGE;
+
+    //     // Add border to coordinates and scale information
+    //     // Merged into IC_Angle
+
+    //     // compute orientations
+    //     // PS. I think this is a bug ? Seems like the launch and join needs to be in the same loop iteration else it breaks
+    //     if (level != 0) {
+    //       ic_angle.join(all_keypts[level-1].data(), all_keypts[level-1].size());
+    //     }
+    } // loop every level
+
+    // // compute orientations
+    // cv::cuda::GpuMat &gMat = mvImagePyramid[nlevels-1];
+    // ic_angle.launch_async(gMat, all_keypts[nlevels-1].data(), all_keypts[nlevels-1].size(), HALF_PATCH_SIZE, min_border_x, min_border_y, nlevels-1, PATCH_SIZE * mvScaleFactor[nlevels-1]);
+    // mpGaussianFilter->apply(gMat, gMat, ic_angle.cvStream());
+    // ic_angle.join(all_keypts[nlevels-1].data(), all_keypts[nlevels-1].size());
 }
 
 std::vector<cv::KeyPoint> orb_extractor::distribute_keypoints_via_tree(const std::vector<cv::KeyPoint>& keypts_to_distribute,
