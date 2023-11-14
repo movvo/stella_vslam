@@ -280,7 +280,6 @@ void system::enable_temporal_mapping() {
 }
 
 data::frame system::create_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
-    std::cout<<"create_monocular_frame pid: "<< std::to_string(getppid())<<std::endl;
     auto myid = std::this_thread::get_id();
     std::stringstream ss;
     ss << myid;
@@ -443,13 +442,13 @@ data::frame system::create_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& dep
     return data::frame(timestamp, camera_, orb_params_, frm_obs, std::move(markers_2d));
 }
 
-std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
+std::shared_ptr<Mat44_t> system::feed_monocular_frame(const int id, const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
     assert(camera_->setup_type_ == camera::setup_type_t::Monocular);
-    std::cout<<"feed_monocular_frame pid: "<< std::to_string(getppid())<<std::endl;
     auto myid = std::this_thread::get_id();
     std::stringstream ss;
     ss << myid;
-    std::cout<<"feed_monocular_frame tid: "<< ss.str()<<std::endl;
+    std::cout<<"feed_monocular_frame tid: "<< ss.str()
+    <<" from component id: "<< std::to_string(id)<<std::endl;
     if (img.empty()) {
         spdlog::warn("preprocess: empty image");
         return nullptr;
@@ -478,7 +477,6 @@ std::shared_ptr<Mat44_t> system::feed_RGBD_frame(const cv::Mat& rgb_img, const c
 }
 
 std::shared_ptr<Mat44_t> system::feed_frame(const data::frame& frm, const cv::Mat& img) {
-    std::cout<<"feed_frame (system.cc) pid: "<< std::to_string(getppid())<<std::endl;
     auto myid = std::this_thread::get_id();
     std::stringstream ss;
     ss << myid;

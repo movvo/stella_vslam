@@ -116,7 +116,6 @@ void tracking_module::reset() {
 
 std::shared_ptr<Mat44_t> tracking_module::feed_frame(data::frame curr_frm) {
     // check if pause is requested
-    std::cout<<"feed_frame (tracking_modules.cc) pid: "<< std::to_string(getppid())<<std::endl;
     auto myid = std::this_thread::get_id();
     std::stringstream ss;
     ss << myid;
