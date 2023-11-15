@@ -279,11 +279,14 @@ void system::enable_temporal_mapping() {
     map_db_->set_fixed_keyframe_id_threshold();
 }
 
-data::frame system::create_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
+data::frame system::create_monocular_frame(const int &id, const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
     auto myid = std::this_thread::get_id();
     std::stringstream ss;
     ss << myid;
-    std::cout<<"create_monocular_frame tid: "<< ss.str()<<std::endl;
+    using namespace std::chrono;
+    auto ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    std::cout<<"["<<std::to_string(ms)<<"]"<<"create_monocular_frame tid: "<< ss.str()
+    <<" from component: "<<std::to_string(id)<<std::endl;
 
     // color conversion
     if (!camera_->is_valid_shape(img)) {
@@ -447,14 +450,16 @@ std::shared_ptr<Mat44_t> system::feed_monocular_frame(const int id, const cv::Ma
     auto myid = std::this_thread::get_id();
     std::stringstream ss;
     ss << myid;
-    std::cout<<"feed_monocular_frame tid: "<< ss.str()
+    using namespace std::chrono;
+    auto ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    std::cout<<"["<<ms<<"]"<<"feed_monocular_frame tid: "<< ss.str()
     <<" from component id: "<< std::to_string(id)<<std::endl;
     if (img.empty()) {
         spdlog::warn("preprocess: empty image");
         return nullptr;
     }
-    auto frame = create_monocular_frame(img, timestamp, mask);
-    auto res = feed_frame(frame, img);
+    auto frame = create_monocular_frame(id, img, timestamp, mask);
+    auto res = feed_frame(id, frame, img);
     return res;
 }
 
@@ -464,7 +469,7 @@ std::shared_ptr<Mat44_t> system::feed_stereo_frame(const cv::Mat& left_img, cons
         spdlog::warn("preprocess: empty image");
         return nullptr;
     }
-    return feed_frame(create_stereo_frame(left_img, right_img, timestamp, mask), left_img);
+    return feed_frame(0, create_stereo_frame(left_img, right_img, timestamp, mask), left_img);
 }
 
 std::shared_ptr<Mat44_t> system::feed_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask) {
@@ -473,19 +478,22 @@ std::shared_ptr<Mat44_t> system::feed_RGBD_frame(const cv::Mat& rgb_img, const c
         spdlog::warn("preprocess: empty image");
         return nullptr;
     }
-    return feed_frame(create_RGBD_frame(rgb_img, depthmap, timestamp, mask), rgb_img);
+    return feed_frame(0, create_RGBD_frame(rgb_img, depthmap, timestamp, mask), rgb_img);
 }
 
-std::shared_ptr<Mat44_t> system::feed_frame(const data::frame& frm, const cv::Mat& img) {
+std::shared_ptr<Mat44_t> system::feed_frame(const int &id, const data::frame& frm, const cv::Mat& img) {
     auto myid = std::this_thread::get_id();
     std::stringstream ss;
     ss << myid;
-    std::cout<<"feed_frame(system.cc) tid: "<< ss.str()<<std::endl;
+    using namespace std::chrono;
+    auto ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    std::cout<<"["<<std::to_string(ms)<<"]"<<"feed_frame(system.cc) tid: "<< ss.str()
+    <<" from component: "<<std::to_string(id)<<std::endl;
     check_reset_request();
 
     const auto start = std::chrono::system_clock::now();
 
-    const auto cam_pose_wc = tracker_->feed_frame(frm);
+    const auto cam_pose_wc = tracker_->feed_frame(id, frm);
 
     const auto end = std::chrono::system_clock::now();
     double elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();

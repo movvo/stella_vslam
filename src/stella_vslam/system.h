@@ -127,11 +127,11 @@ public:
     //-----------------------------------------
     // data feeding methods
 
-    std::shared_ptr<Mat44_t> feed_frame(const data::frame& frm, const cv::Mat& img);
+    std::shared_ptr<Mat44_t> feed_frame(const int &id, const data::frame& frm, const cv::Mat& img);
 
     //! Feed a monocular frame to SLAM system
     //! (NOTE: distorted images are acceptable if calibrated)
-    data::frame create_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask = cv::Mat{});
+    data::frame create_monocular_frame(const int &id, const cv::Mat& img, const double timestamp, const cv::Mat& mask = cv::Mat{});
     std::shared_ptr<Mat44_t> feed_monocular_frame(const int id, const cv::Mat& img, const double timestamp, const cv::Mat& mask = cv::Mat{});
 
     //! Feed a stereo frame to SLAM system

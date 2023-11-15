@@ -68,7 +68,7 @@ public:
     // interfaces
 
     //! Main stream of the tracking module
-    std::shared_ptr<Mat44_t> feed_frame(data::frame frame);
+    std::shared_ptr<Mat44_t> feed_frame(const int &id, data::frame frame);
 
     //! Request to update the pose to a given one.
     //! Return failure in case if previous request was not finished yet.
