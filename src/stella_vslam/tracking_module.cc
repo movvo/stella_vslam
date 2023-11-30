@@ -121,8 +121,8 @@ std::shared_ptr<Mat44_t> tracking_module::feed_frame(const int &id, data::frame 
     ss << myid;
     using namespace std::chrono;
     auto ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-    std::cout<<"["<<std::to_string(ms)<<"]"<<"feed_frame(tracking_modules.cc) tid: "<< ss.str()
-    <<" from component: "<<std::to_string(id)<<std::endl;
+    // std::cout<<"["<<std::to_string(ms)<<"]"<<"feed_frame(tracking_modules.cc) tid: "<< ss.str()
+    // <<" from component: "<<std::to_string(id)<<std::endl;
     pause_if_requested();
     while (is_paused()) {
         std::this_thread::sleep_for(std::chrono::microseconds(5000));

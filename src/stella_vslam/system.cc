@@ -280,13 +280,13 @@ void system::enable_temporal_mapping() {
 }
 
 data::frame system::create_monocular_frame(const int &id, const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
-    auto myid = std::this_thread::get_id();
-    std::stringstream ss;
-    ss << myid;
-    using namespace std::chrono;
-    auto ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-    std::cout<<"["<<std::to_string(ms)<<"]"<<"create_monocular_frame tid: "<< ss.str()
-    <<" from component: "<<std::to_string(id)<<std::endl;
+    // auto myid = std::this_thread::get_id();
+    // std::stringstream ss;
+    // ss << myid;
+    // using namespace std::chrono;
+    // auto ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    // std::cout<<"["<<std::to_string(ms)<<"][Producer]: create_monocular_frame tid: "<< ss.str()
+    // <<" from component: "<<std::to_string(id)<<std::endl;
 
     // color conversion
     if (!camera_->is_valid_shape(img)) {
@@ -487,8 +487,8 @@ std::shared_ptr<Mat44_t> system::feed_frame(const int &id, const data::frame& fr
     ss << myid;
     using namespace std::chrono;
     auto ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-    std::cout<<"["<<std::to_string(ms)<<"]"<<"feed_frame(system.cc) tid: "<< ss.str()
-    <<" from component: "<<std::to_string(id)<<std::endl;
+    // std::cout<<"["<<std::to_string(ms)<<"]"<<"feed_frame(system.cc) tid: "<< ss.str()
+    // <<" from component: "<<std::to_string(id)<<std::endl;
     check_reset_request();
 
     const auto start = std::chrono::system_clock::now();
