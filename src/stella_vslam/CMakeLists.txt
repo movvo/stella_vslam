@@ -23,6 +23,8 @@ find_package(g2o REQUIRED
              OPTIONAL_COMPONENTS
              g2o::csparse)
 
+find_package(spdlog REQUIRED)
+
 # gtsam
 set(USE_GTSAM ON CACHE BOOL "Enable gtsam")
 unset(GTSAM_INCLUDE_DIRS CACHE)
@@ -176,7 +178,6 @@ target_include_directories(${PROJECT_NAME}
                            PUBLIC
                            "$<BUILD_INTERFACE:${json_INCLUDE_DIR}>"
                            "$<BUILD_INTERFACE:${tinycolormap_INCLUDE_DIR}>"
-                           "$<$<NOT:$<BOOL:${spdlog_FOUND}>>:$<BUILD_INTERFACE:${spdlog_INCLUDE_DIR}>>"
                            "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/>"
                            "$<INSTALL_INTERFACE:include/stella_vslam/3rd/json/include>"
                            "$<$<NOT:$<BOOL:${spdlog_FOUND}>>:$<INSTALL_INTERFACE:include/stella_vslam/3rd/spdlog/include>>"

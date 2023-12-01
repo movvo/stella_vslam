@@ -153,6 +153,7 @@ void system::print_info() {
     message_stream << "and you are welcome to redistribute it under certain conditions." << std::endl;
     message_stream << "See the LICENSE file." << std::endl;
     message_stream << std::endl;
+    message_stream << "MOVVO FORK" << std::endl;
 
     // show configuration
     message_stream << *cfg_ << std::endl;
@@ -223,6 +224,10 @@ const std::shared_ptr<publish::map_publisher> system::get_map_publisher() const 
 
 const std::shared_ptr<publish::frame_publisher> system::get_frame_publisher() const {
     return frame_publisher_;
+}
+
+const data::map_database* system::get_map_database() const {
+    return map_db_;
 }
 
 void system::enable_mapping_module() {
@@ -546,6 +551,14 @@ void system::resume_tracker() {
     tracker_->resume();
 }
 
+uint8_t system::get_tracking_state() {
+    return (uint8_t)    tracker_->tracking_state_;
+}
+
+void system::set_tracking_state(tracker_state_t tracking_state) {
+    tracker_->tracking_state_ = tracking_state;
+}
+
 void system::request_reset() {
     std::lock_guard<std::mutex> lock(mtx_reset_);
     reset_is_requested_ = true;
@@ -564,6 +577,10 @@ void system::request_terminate() {
 bool system::terminate_is_requested() const {
     std::lock_guard<std::mutex> lock(mtx_terminate_);
     return terminate_is_requested_;
+}
+
+void system::reset_tracker() {
+    tracker_->reset();
 }
 
 camera::base* system::get_camera() const {
