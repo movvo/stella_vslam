@@ -487,11 +487,11 @@ std::shared_ptr<Mat44_t> system::feed_RGBD_frame(const cv::Mat& rgb_img, const c
 }
 
 std::shared_ptr<Mat44_t> system::feed_frame(const int &id, const data::frame& frm, const cv::Mat& img) {
-    auto myid = std::this_thread::get_id();
-    std::stringstream ss;
-    ss << myid;
-    using namespace std::chrono;
-    auto ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    // auto myid = std::this_thread::get_id();
+    // std::stringstream ss;
+    // ss << myid;
+    // using namespace std::chrono;
+    // auto ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
     // std::cout<<"["<<std::to_string(ms)<<"]"<<"feed_frame(system.cc) tid: "<< ss.str()
     // <<" from component: "<<std::to_string(id)<<std::endl;
     check_reset_request();
