@@ -452,13 +452,6 @@ data::frame system::create_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& dep
 
 std::shared_ptr<Mat44_t> system::feed_monocular_frame(const int id, const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
     assert(camera_->setup_type_ == camera::setup_type_t::Monocular);
-    auto myid = std::this_thread::get_id();
-    std::stringstream ss;
-    ss << myid;
-    using namespace std::chrono;
-    auto ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-    std::cout<<"["<<ms<<"]"<<"feed_monocular_frame tid: "<< ss.str()
-    <<" from component id: "<< std::to_string(id)<<std::endl;
     if (img.empty()) {
         spdlog::warn("preprocess: empty image");
         return nullptr;
