@@ -18,7 +18,7 @@ void local_map_cleaner::reset() {
 }
 
 unsigned int local_map_cleaner::remove_invalid_landmarks(const unsigned int cur_keyfrm_id) {
-    std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+    std::lock_guard<std::mutex> lock(map_db_->get_mutex());
     // states of observed landmarks
     enum class lm_state_t { Valid,
                             Invalid,
@@ -70,7 +70,7 @@ unsigned int local_map_cleaner::remove_redundant_keyframes(const std::shared_ptr
         return 0;
     }
 
-    std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+    std::lock_guard<std::mutex> lock(map_db_->get_mutex());
     // window size not to remove
     constexpr unsigned int window_size_not_to_remove = 2;
     // if the redundancy ratio of observations is larger than this threshold,

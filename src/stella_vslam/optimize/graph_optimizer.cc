@@ -26,7 +26,8 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
                                const module::keyframe_Sim3_pairs_t& non_corrected_Sim3s,
                                const module::keyframe_Sim3_pairs_t& pre_corrected_Sim3s,
                                const std::map<std::shared_ptr<data::keyframe>, std::set<std::shared_ptr<data::keyframe>>>& loop_connections,
-                               std::unordered_map<unsigned int, unsigned int>& found_lm_to_ref_keyfrm_id) const {
+                               std::unordered_map<unsigned int, unsigned int>& found_lm_to_ref_keyfrm_id,
+                               data::map_database* const map_db) const {
     // 1. Construct an optimizer
 
     auto linear_solver = stella_vslam::make_unique<g2o::LinearSolverCSparse<g2o::BlockSolver_7_3::PoseMatrixType>>();
@@ -260,7 +261,7 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
     // 5. Update the camera poses and point-cloud
 
     {
-        std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+        std::lock_guard<std::mutex> lock(map_db->get_mutex());
 
         // For modification of a point-cloud, save the post-modified poses of all the keyframes
         std::unordered_map<unsigned int, g2o::Sim3> corrected_Sim3s_wc;

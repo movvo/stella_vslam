@@ -18,8 +18,8 @@ namespace io {
 bool map_database_io_msgpack::save(const std::string& path,
                                    const data::camera_database* const cam_db,
                                    const data::orb_params_database* const orb_params_db,
-                                   const data::map_database* const map_db) {
-    std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+                                   data::map_database* const map_db) {
+    std::lock_guard<std::mutex> lock(map_db->get_mutex());
 
     assert(cam_db && orb_params_db && map_db);
     const auto cameras = cam_db->to_json();
@@ -56,7 +56,7 @@ bool map_database_io_msgpack::load(const std::string& path,
                                    data::map_database* map_db,
                                    data::bow_database* bow_db,
                                    data::bow_vocabulary* bow_vocab) {
-    std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+    std::lock_guard<std::mutex> lock(map_db->get_mutex());
     assert(cam_db && orb_params_db && map_db && bow_db && bow_vocab);
 
     // load binary bytes

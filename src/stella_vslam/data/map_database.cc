@@ -18,7 +18,7 @@
 namespace stella_vslam {
 namespace data {
 
-std::mutex map_database::mtx_database_;
+// std::mutex map_database::mtx_database_;
 
 map_database::map_database(unsigned int min_num_shared_lms)
     : fixed_keyframe_id_threshold_(0), min_num_shared_lms_(min_num_shared_lms) {
@@ -28,6 +28,10 @@ map_database::map_database(unsigned int min_num_shared_lms)
 map_database::~map_database() {
     clear();
     spdlog::debug("DESTRUCT: data::map_database");
+}
+
+std::mutex& map_database::get_mutex() {
+    return mtx_database_;
 }
 
 void map_database::set_fixed_keyframe_id_threshold() {

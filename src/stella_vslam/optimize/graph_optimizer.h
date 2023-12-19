@@ -41,7 +41,8 @@ public:
                   const module::keyframe_Sim3_pairs_t& non_corrected_Sim3s,
                   const module::keyframe_Sim3_pairs_t& pre_corrected_Sim3s,
                   const std::map<std::shared_ptr<data::keyframe>, std::set<std::shared_ptr<data::keyframe>>>& loop_connections,
-                  std::unordered_map<unsigned int, unsigned int>& found_lm_to_ref_keyfrm_id) const;
+                  std::unordered_map<unsigned int, unsigned int>& found_lm_to_ref_keyfrm_id,
+                  data::map_database* const map_db) const;
 
 private:
     //! SE3 optimization or Sim3 optimization

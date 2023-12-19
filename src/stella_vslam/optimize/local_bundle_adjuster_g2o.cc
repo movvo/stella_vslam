@@ -362,7 +362,7 @@ void local_bundle_adjuster_g2o::optimize(data::map_database* map_db,
     // 8. Update the information
 
     {
-        std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+        std::lock_guard<std::mutex> lock(map_db->get_mutex());
 
         for (const auto& outlier_obs : outlier_observations) {
             const auto& keyfrm = outlier_obs.first;

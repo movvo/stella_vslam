@@ -109,7 +109,7 @@ bool keyframe_inserter::new_keyframe_is_needed(data::map_database* map_db,
 std::shared_ptr<data::keyframe> keyframe_inserter::create_new_keyframe(
     data::map_database* map_db,
     data::frame& curr_frm) {
-    std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+    std::lock_guard<std::mutex> lock(map_db->get_mutex());
 
     auto keyfrm = data::keyframe::make_keyframe(map_db->next_keyframe_id_++, curr_frm);
     keyfrm->update_landmarks();

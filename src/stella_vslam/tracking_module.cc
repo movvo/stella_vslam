@@ -189,7 +189,7 @@ bool tracking_module::track(bool relocalization_is_needed,
                             unsigned int& num_reliable_lms,
                             const unsigned int min_num_obs_thr) {
     // LOCK the map database
-    std::lock_guard<std::mutex> lock1(data::map_database::mtx_database_);
+    std::lock_guard<std::mutex> lock1(map_db_->get_mutex());
     std::lock_guard<std::mutex> lock2(mtx_last_frm_);
 
     // update the camera pose of the last frame
@@ -301,7 +301,7 @@ bool tracking_module::track_local_map_without_temporal_keyframes(unsigned int& n
 bool tracking_module::initialize() {
     {
         // LOCK the map database
-        std::lock_guard<std::mutex> lock1(data::map_database::mtx_database_);
+        std::lock_guard<std::mutex> lock1(map_db_->get_mutex());
         std::lock_guard<std::mutex> lock2(mtx_stop_keyframe_insertion_);
 
         // try to initialize with the current frame

@@ -265,9 +265,11 @@ public:
      */
     bool to_db(sqlite3* db) const;
 
+    std::mutex& get_mutex();
+
     //! mutex for locking ALL access to the database
     //! (NOTE: cannot used in map_database class)
-    static std::mutex mtx_database_;
+    mutable std::mutex mtx_database_;
 
     //! next ID
     std::atomic<unsigned int> next_keyframe_id_{0};

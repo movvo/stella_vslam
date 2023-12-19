@@ -67,7 +67,7 @@ void loop_bundle_adjuster::optimize(const std::shared_ptr<data::keyframe>& curr_
         spdlog::debug("loop_bundle_adjuster::optimize: wait for mapper_->async_pause");
         future_pause.get();
 
-        std::lock_guard<std::mutex> lock2(data::map_database::mtx_database_);
+        std::lock_guard<std::mutex> lock2(map_db_->get_mutex());
 
         spdlog::debug("update the camera pose along the spanning tree from the root");
         eigen_alloc_unord_map<unsigned int, Mat44_t> keyfrm_to_cam_pose_cw_before_BA;

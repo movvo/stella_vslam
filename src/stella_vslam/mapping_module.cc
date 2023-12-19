@@ -330,7 +330,7 @@ void mapping_module::create_new_landmarks(std::atomic<bool>& abort_create_new_la
 
 void mapping_module::triangulate_with_two_keyframes(const std::shared_ptr<data::keyframe>& keyfrm_1, const std::shared_ptr<data::keyframe>& keyfrm_2,
                                                     const std::vector<std::pair<unsigned int, unsigned int>>& matches) {
-    std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+    std::lock_guard<std::mutex> lock(map_db_->get_mutex());
     const module::two_view_triangulator triangulator(keyfrm_1, keyfrm_2, 1.0);
 
 #ifdef USE_OPENMP
@@ -369,7 +369,7 @@ void mapping_module::triangulate_with_two_keyframes(const std::shared_ptr<data::
 }
 
 void mapping_module::update_new_keyframe() {
-    std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+    std::lock_guard<std::mutex> lock(map_db_->get_mutex());
 
     // get the targets to check landmark fusion
     const auto fuse_tgt_keyfrms = cur_keyfrm_->graph_node_->get_top_n_covisibilities(num_covisibilities_for_landmark_fusion_);

@@ -18,7 +18,7 @@ trajectory_io::trajectory_io(data::map_database* map_db)
     : map_db_(map_db) {}
 
 void trajectory_io::save_frame_trajectory(const std::string& path, const std::string& format) const {
-    std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+    std::lock_guard<std::mutex> lock(map_db_->get_mutex());
 
     // 1. acquire the frame stats
 
@@ -111,7 +111,7 @@ void trajectory_io::save_frame_trajectory(const std::string& path, const std::st
 }
 
 void trajectory_io::save_keyframe_trajectory(const std::string& path, const std::string& format) const {
-    std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+    std::lock_guard<std::mutex> lock(map_db_->get_mutex());
 
     // 1. acquire keyframes and sort them
 

@@ -23,7 +23,7 @@ public:
     virtual bool save(const std::string& path,
                       const data::camera_database* const cam_db,
                       const data::orb_params_database* const orb_params_db,
-                      const data::map_database* const map_db)
+                      data::map_database* const map_db)
         = 0;
 
     /**

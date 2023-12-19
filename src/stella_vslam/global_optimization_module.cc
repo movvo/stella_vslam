@@ -82,7 +82,7 @@ void global_optimization_module::finish_loop_closure_request() {
 
 bool global_optimization_module::loop_closure(const loop_closure_request& request) {
     {
-        std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+        std::lock_guard<std::mutex> lock(map_db_->get_mutex());
         unsigned int curr_keyfrm_id = std::max(request.keyfrm1_id_, request.keyfrm2_id_);
         unsigned int candidate_keyfrm_id = std::min(request.keyfrm1_id_, request.keyfrm2_id_);
         // not to be removed during loop detection and correction
@@ -164,7 +164,7 @@ void global_optimization_module::run() {
         }
 
         {
-            std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+            std::lock_guard<std::mutex> lock(map_db_->get_mutex());
             // not to be removed during loop detection and correction
             cur_keyfrm_->set_not_to_be_erased();
 
@@ -246,7 +246,7 @@ void global_optimization_module::correct_loop() {
     std::unordered_map<unsigned int, unsigned int> found_lm_to_ref_keyfrm_id;
     const auto g2o_Sim3_cw_after_correction = loop_detector_->get_Sim3_world_to_current();
     {
-        std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+        std::lock_guard<std::mutex> lock(map_db_->get_mutex());
 
         // camera pose of the current keyframe BEFORE loop correction
         const Mat44_t cam_pose_wc_before_correction = cur_keyfrm_->get_pose_wc();
@@ -276,7 +276,7 @@ void global_optimization_module::correct_loop() {
     // 4. pose graph optimization
 
     SPDLOG_TRACE("global_optimization_module: pose graph optimization");
-    graph_optimizer_->optimize(final_candidate_keyfrm, cur_keyfrm_, Sim3s_nw_before_correction, Sim3s_nw_after_correction, new_connections, found_lm_to_ref_keyfrm_id);
+    graph_optimizer_->optimize(final_candidate_keyfrm, cur_keyfrm_, Sim3s_nw_before_correction, Sim3s_nw_after_correction, new_connections, found_lm_to_ref_keyfrm_id, map_db_);
 
     // add a loop edge
     final_candidate_keyfrm->graph_node_->add_loop_edge(cur_keyfrm_);
@@ -397,7 +397,7 @@ void global_optimization_module::replace_duplicated_landmarks(const std::vector<
     nondeterministic::unordered_map<std::shared_ptr<data::landmark>, std::shared_ptr<data::landmark>> replaced_lms;
     // resolve duplications of landmarks between the current keyframe and the loop candidate
     {
-        std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+        std::lock_guard<std::mutex> lock(map_db_->get_mutex());
 
         for (unsigned int idx = 0; idx < cur_keyfrm_->frm_obs_.num_keypts_; ++idx) {
             auto curr_match_lm_in_cand = curr_match_lms_observed_in_cand.at(idx);
@@ -456,7 +456,7 @@ void global_optimization_module::replace_duplicated_landmarks(const std::vector<
         const Vec3_t trans_cw = Sim3_nw_after_correction.block<3, 1>(0, 3) / s_cw;
         fuse_matcher.detect_duplication(neighbor, rot_cw, trans_cw, curr_match_lms_observed_in_cand_covis, 4.0, duplicated_lms_in_keyfrm, new_connections);
 
-        std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+        std::lock_guard<std::mutex> lock(map_db_->get_mutex());
 
         for (const auto& best_idx_lm : new_connections) {
             const auto& best_idx = best_idx_lm.first;
